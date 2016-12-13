@@ -1,0 +1,367 @@
+---
+title: "ADA Abstract"
+author: "Windy Wang"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+
+library(dplyr)
+library(ggplot2)
+
+ds <- readRDS(file='../data/ds.Rds')
+ds1 <- ds %>% filter(fVN == "Baseline")
+source('../R/functions.r')
+
+```
+
+Subject Characterization
+========================
+
+Subject characteristics across visit numbers
+```{r subject characteristics}
+table_subChar(ds)
+
+# check n
+
+table(ds$fVN)
+
+table(ds6$fMedsBP)
+
+# check n of multiple variables
+ds %>%
+  dplyr::tbl_df() %>%
+  dplyr::filter(VN == 1) %>% 
+  dplyr::select(SID, Age, Sex, Ethnicity, BMI,  
+         UrineMicroalbumin, UrineCreatinine, MicroalbCreatRatio, eGFR,
+         VitaminD, Creatinine, UDBP,
+         MeanArtPressure, Systolic, Diastolic) %>%
+  tidyr::gather(Measure, Value, -SID) %>%
+  na.omit() %>%
+  dplyr::group_by(Measure) %>%
+  dplyr::summarise(n = n())
+
+```
+
+Statististical tests
+```{r stats}
+
+## make sure that it is okay to do chi-square with longitudinal
+## make sure the error term for anova is correct
+
+summary(aov(Age ~ fVN + Error(SID/fVN), data=ds))
+
+chisq.test(table(ds$Ethnicity, ds$fVN), correct = TRUE)
+
+chisq.test(table(ds$Sex, ds$fVN), correct = TRUE)
+
+summary(aov(BMI ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(Waist ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(eGFR ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(ACR ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(UrineCreatinine ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(UrineMicroalbumin ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(UDBP ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(Creatinine ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(VitaminD ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(PTH ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(ALT ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(Systolic ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(Diastolic ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(MeanArtPressure ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(Glucose0 ~ fVN + Error(SID/fVN), data=ds))
+
+summary(aov(Glucose120 ~ fVN + Error(SID/fVN), data=ds))
+
+chisq.test(table(ds$dm_status, ds$fVN), correct = TRUE)
+
+# TukeyHSD(anova, which="fVN")
+```
+
+
+Part 1 - Cross-Sectional
+========================
+
+ACR
+---
+```{r acr boxplot}
+
+# Box plot of uVDBP in different albuminuria categories
+
+ds %>% 
+  filter(fVN == "Baseline") %>% 
+  select(acr_status, udbpCrRatio) %>%
+  na.omit() %>%
+  box_plot("acr_status", "log(udbpCrRatio)", 
+            "Albuminuria",
+            "log uVDBP:Creatinine")
+
+# Boxplot of ACR in uVDBP categories
+ds1 %>% 
+  select(UDBP_status, ACR) %>% 
+  na.omit() %>% 
+  box_plot("UDBP_status", "log(ACR)",
+           "Urinary VDBP status",
+           "log urine albumin-to-creatinine ratio (mg/mmol)")
+
+# ANOVA
+
+anova <- aov(formula = log(udbpCrRatio)~acr_status, data = ds1)
+summary(anova)
+TukeyHSD(anova)
+rm(anova)
+```
+
+```{r acr scatterplot}
+
+# Scatterplot of ACR and uVDBP ----------------------------------
+
+ds %>% 
+  filter(fVN == "Baseline") %>% 
+  select(ACR, udbpCrRatio) %>% 
+  na.omit() %>% 
+  scatter_plot("log(ACR)", "log(udbpCrRatio)",
+               "log Albumin:Creatinine Ratio",
+               "log UDBP:Creatinine") +
+  geom_smooth(method = lm, colour = "grey50")
+
+# Spearman Correlation ------------------------------------------
+
+ds %>% 
+  filter(fVN == "Baseline") %>% 
+  cor.test(formula = ~ ACR + udbpCrRatio, data = ., method = "spearman")
+```
+
+
+eGFR
+----
+```{r eGFR boxplot}
+
+# Boxplot of uVDBP concentrations across eGFR categories --------------
+
+ds %>% 
+  filter(fVN == "Baseline") %>% 
+  select(eGFR_status, udbpCrRatio) %>% 
+  na.omit() %>% 
+  box_plot2("eGFR_status", "log(udbpCrRatio)", 
+            "Estimated GFR (ml/min/1.73m^2)",
+            "log uVDBP:Creatinine")
+
+# Boxplot of eGFR in uVDBP categories
+ds1 %>% 
+  select(UDBP_status, eGFR) %>% 
+  na.omit() %>% 
+  box_plot("UDBP_status", "eGFR",
+           "Urinary VDBP status",
+           "Estimated glomerular filtration rate (ml/min/1.73m^2)")
+
+# ANOVA
+
+anova <- aov(formula = log(udbpCrRatio)~eGFR_status, data = ds1)
+summary(anova)
+TukeyHSD(anova)
+rm(anova)
+```
+
+```{r eGFR scatterplot}
+
+# Scatterplot of ACR and uVDBP ----------------------------------
+
+ds %>% 
+  filter(fVN == "Baseline") %>% 
+  select(eGFR, udbpCrRatio) %>% 
+  na.omit() %>% 
+  scatter_plot("eGFR", "log(udbpCrRatio)",
+               "Estimated Glomerular Filtration Rate (ml/min/1.73m^2)",
+               "log UDBP:Creatinine") +
+  geom_smooth(method = lm, colour = "grey50")
+
+# Spearman Correlation ------------------------------------------
+
+ds %>% 
+  filter(fVN == "Baseline") %>% 
+  cor.test(formula = ~ eGFR + udbpCrRatio, data = ., method = "spearman")
+```
+
+Glycemic Status
+---------------
+```{r dm boxplot}
+
+# Boxplot of uVDBP concentrations across DM categories --------------
+
+ds %>% 
+  filter(fVN == "Baseline") %>% 
+  select(dm_status, udbpCrRatio) %>% 
+  na.omit() %>% 
+  box_plot("dm_status", "log(udbpCrRatio)", 
+            "Estimated GFR (ml/min/1.73m^2)",
+            "log uVDBP:Creatinine")
+
+# Boxplot of Glucose0 in uVDBP categories
+ds1 %>% 
+  select(UDBP_status, Glucose0) %>% 
+  na.omit() %>% 
+  box_plot("UDBP_status", "log(Glucose0)",
+           "Urinary VDBP status",
+           "Fasting Glucose")
+
+# Boxplot of Glucose120 in uVDBP categories
+ds1 %>% 
+  select(UDBP_status, Glucose120) %>% 
+  na.omit() %>% 
+  box_plot("UDBP_status", "log(Glucose120)",
+           "Urinary VDBP status",
+           "2h-post OGTT")
+
+# ANOVA---------------------------------------------------------------
+
+anova <- aov(formula = log(udbpCrRatio)~dm_status, data = ds1)
+summary(anova)
+TukeyHSD(anova)
+rm(anova)
+```
+
+
+
+25(OH)
+------
+```{r vitD scatterplot}
+
+# Scatterplot of serum 25(OH)D and uVDBP ----------------------------------
+
+ds %>% 
+  filter(fVN == "Baseline") %>% 
+  scatter_plot("log(udbpCrRatio)", "VitaminD",
+               "log uVDBP:creatinine",
+               "Serum 25(OH)D") +
+  geom_smooth(method = lm, colour = "grey50")
+
+# Spearman correlation ----------------------------------------------------
+
+ds %>% 
+  filter(fVN == "Baseline") %>% 
+  cor.test(formula = ~ udbpCrRatio + VitaminD, data = ., method = "spearman")
+```
+
+
+Part 2 - GEE
+============
+
+```{r correlation}
+dsGEE <- ds %>% 
+  dplyr::mutate(udbpBase = ifelse(fVN == "Baseline", UDBP, NA),
+                ageBase = ifelse(fVN == "Baseline", Age, NA),
+                bmiBase = ifelse(fVN == "Baseline", BMI, NA),
+                waistBase = ifelse(fVN == "Baseline", Waist, NA), 
+                Sex = ifelse(Sex == "Male", 1, 0),
+                Ethnicity = ifelse(Ethnicity == "European", Ethnicity, "Other"),
+                Ethnicity = ifelse(Ethnicity == "European", 0, 1),
+                fMedsBP = ifelse(fMedsBP == "Yes", 1, 0)
+                # vitdBase = ifelse(fVN == "6Year", NA, VitaminD)
+                ) %>% 
+  dplyr::arrange(SID, fVN) %>% 
+  dplyr::group_by(SID) %>% 
+  tidyr::fill(udbpBase, ageBase, bmiBase, waistBase) %>% 
+  dplyr::ungroup() %>%
+  dplyr::arrange(SID, VN) %>% 
+  dplyr::select(udbpBase, ACR, eGFR, VN, ageBase, Sex, Ethnicity, BMI, 
+                Waist, DM, fMedsBP)
+
+round(cor(dsGEE[sapply(dsGEE, is.numeric)], use = "complete.obs"), 2)
+
+# Heatmap
+
+corrplot::corrplot(cor(dsGEE[sapply(dsGEE, is.numeric)], use = "complete.obs"),
+                   method = "color")
+```
+
+
+```{r mason}
+
+gee <- ds %>% 
+  dplyr::mutate(udbpBase = ifelse(fVN == "Baseline", UDBP, NA)
+                # ageBase = ifelse(fVN == "Baseline", Age, NA),
+                # bmiBase = ifelse(fVN == "Baseline", BMI, NA),
+                # Ethnicity = ifelse(Ethnicity == "European", Ethnicity, "Other"),
+                # fMedsBP = ifelse(is.na(fMedsBP), "No", "Yes"), 
+                # fMedsBP = factor(fMedsBP, ordered = FALSE)
+                # vitdBase = ifelse(fVN == "Baseline", VitaminD, NA)
+                ) %>% 
+  dplyr::filter(!(fVN == "Baseline" & acr_status == "Macroalbuminuria")) %>%
+  dplyr::filter(!(fVN == "Baseline" & eGFR_status == "Moderate")) %>%
+  # dplyr::filter(!(fVN == "Baseline" & dm_status == "DM")) %>%
+  dplyr::arrange(SID, fVN) %>% 
+  dplyr::group_by(SID) %>% 
+  tidyr::fill(udbpBase) %>% 
+  dplyr::ungroup() %>%
+  dplyr::group_by(VN) %>% 
+  dplyr::mutate(
+    udbpBase = as.numeric(scale(udbpBase))
+  ) %>%
+  dplyr::arrange(SID, VN) %>% 
+  mason::design("gee") %>% 
+  mason::add_settings(family = stats::gaussian(),
+                      corstr = "ar1", cluster.id = "SID") %>% 
+  mason::add_variables("yvars", c("ACR", "eGFR")) %>% 
+  mason::add_variables("xvars", "udbpBase") %>% 
+  mason::add_variables("covariates", c("VN")) %>% 
+  # mason::add_variables("covariates", c("VN", "ageBase", "Sex", "Ethnicity",  
+  #                                      "BMI", "DM", "fMedsBP")) %>%
+  mason::construct() %>% 
+  mason::scrub() %>% 
+  mason::polish_adjust_pvalue(method = "BH") %>% 
+  # mason::polish_filter("Xterm", "term") %>%
+  dplyr::mutate_each(dplyr::funs(format_rounding), estimate, std.error, conf.low, conf.high) %>%
+  dplyr::mutate_each(dplyr::funs(format_p), p.value, adj.p.value)
+
+# To-Do: categorical outcome variables
+
+```
+
+Graph
+```{r gee plot}
+
+gee %>%
+  dplyr::mutate(p.value = ifelse(p.value > 0.05, 1, 0.04)) %>%
+  seer::view_main_effect(
+  graph.options = 'dot.size',
+  groups = '~Yterms',
+  legend.title = 'p-values',
+  xlab = 'Percent difference with 95% CI in the outcomes\nfor each unit increase in baseline uVDBP',
+  ylab = 'Kidney Measures'
+  ) +
+  graph_theme(ticks = FALSE, legend.pos = 'right') +
+  ggplot2::theme(legend.margin = grid::unit(0, 'cm'))
+
+```
+
+
+Part 3 - Disease Progression (probably no time)
+===============================================
+
+Find n
+```{r}
+# ds %>% 
+#   dplyr::select(SID, VN, eGFR_status, eGFR) %>% 
+#   dplyr::group_by(SID, VN) %>% 
+#   na.omit() %>% 
+#   statetable.msm(eGFR_status, SID, data= .)
+
+```
+
+
