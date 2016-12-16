@@ -248,7 +248,7 @@ gee <- ds %>%
                 ) %>% 
   dplyr::filter(!(fVN == "Baseline" & acr_status == "Macroalbuminuria")) %>%
   dplyr::filter(!(fVN == "Baseline" & eGFR_status == "Moderate")) %>%
-  # dplyr::filter(!(fVN == "Baseline" & dm_status == "DM")) %>%
+  dplyr::filter(eGFR > 90) %>% 
   dplyr::arrange(SID, fVN) %>% 
   dplyr::group_by(SID) %>% 
   tidyr::fill(udbpBase, ageBase) %>% 
@@ -258,24 +258,9 @@ gee <- ds %>%
     udbpBase = as.numeric(scale(udbpBase))
   ) %>%
   dplyr::arrange(SID, VN) %>% 
-  mason::design("gee") %>% 
-  mason::add_settings(family = stats::gaussian(),
-                      corstr = "ar1", cluster.id = "SID") %>% 
-  mason::add_variables("yvars", c("ACR", "eGFR")) %>% 
-  mason::add_variables("xvars", "udbpBase") %>% 
-  mason::add_variables("covariates", c("VN")) %>% 
-  mason::add_variables("covariates", c("VN", "ageBase", "Sex",
-                                       "BMI", "DM", "fMedsBP")) %>%
-  # mason::construct() %>% 
-  # mason::add_variables("yvars", c("eGFR")) %>% 
-  # mason::add_variables("xvar", "udbpBase") %>% 
-  # mason::add_variables("covariates", c("VN", "ageBase", "DM")) %>% 
-  mason::construct() %>% 
-  mason::scrub() %>% 
-  mason::polish_adjust_pvalue(method = "BH") %>% 
-  # mason::polish_filter("Xterm", "term") %>%
-  dplyr::mutate_each(dplyr::funs(format_rounding), estimate, std.error, conf.low, conf.high) %>%
-  dplyr::mutate_each(dplyr::funs(format_p), p.value, adj.p.value)
+  mason_gee(yvars = c("ACR", "eGFR"),
+            xvars = "udbpBase",
+            covars = c("VN", "ageBase", "DM"))
 
 # To-Do: categorical outcome variables
 
