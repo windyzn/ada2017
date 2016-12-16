@@ -71,17 +71,17 @@ table_subChar <- function(data) {
 
 ## Scatterplot ##
 scatter_plot = function(data, xvar, yvar, xlab='', ylab='') {
-  ggplot(data, aes_string(x=xvar, y=yvar)) +
-    geom_point(colour = "#0db7c4", size = 1) + #mapping=aes(color=mcr_status)
-    theme_minimal() + 
-    theme(panel.grid.major.x = element_blank(), 
+  ggplot2::ggplot(data, aes_string(x=xvar, y=yvar)) +
+    ggplot2::geom_point(colour = "#0db7c4", size = 1) + #mapping=aes(color=mcr_status)
+    ggplot2::theme_minimal() + 
+    ggplot2::theme(panel.grid.major.x = element_blank(), 
           axis.line.y = element_blank(),
           axis.text.y = element_text(colour = "grey"),
           axis.ticks.y = element_line(colour = "grey"),
           axis.text.x = element_text(colour = "grey50"), #angle = 45
           axis.title = element_text(size = 10)) +
-    xlab(xlab) +
-    ylab(ylab)
+    ggplot2::xlab(xlab) +
+    ggplot2::ylab(ylab)
 }
 
 # EXAMPLE:
@@ -96,22 +96,22 @@ scatter_plot = function(data, xvar, yvar, xlab='', ylab='') {
 
 ## Boxplot ##
 box_plot <- function(data, xvar, yvar, xlab="", ylab="") {
-  ggplot(data, aes_string(x = xvar, y = yvar)) +
-    geom_boxplot(aes_string(colour = xvar, fill = xvar)) +
-    stat_summary(geom = "crossbar", width = 0.65, fatten = 0, color = "white",
+  ggplot2::ggplot(data, aes_string(x = xvar, y = yvar)) +
+    ggplot2::geom_boxplot(aes_string(colour = xvar, fill = xvar)) +
+    ggplot2::stat_summary(geom = "crossbar", width = 0.65, fatten = 0, color = "white",
                  fun.data = function(x){
                    return(c(y = median(x), ymin = median(x), ymax = median(x)))
                  }) +
-    theme_minimal() +
-    theme(legend.position = "none",
+    ggplot2::theme_minimal() +
+    ggplot2::theme(legend.position = "none",
           panel.grid.major.x = element_blank(), 
           axis.line.y = element_blank(),
           axis.text.y = element_text(colour = "grey"),
           axis.ticks.y = element_line(colour = "grey"),
           axis.text.x = element_text(colour = "grey 30"), #angle = 45
           axis.title = element_text(size = 10)) +
-    xlab(xlab) +
-    ylab(ylab)
+    ggplot2::xlab(xlab) +
+    ggplot2::ylab(ylab)
 }
 
 # scale_x_discrete(labels = paste(levels(ds_base$xvar), 
@@ -128,28 +128,15 @@ box_plot <- function(data, xvar, yvar, xlab="", ylab="") {
 #     theme_bw()
 # }
 
-## Bargraph ##
-bar_plot = function(data, xvar, yvar, xlab='', ylab='') {
-  ggplot(data, aes(x=xvar, y=yvar)) +
-    geom_bar(stat='identity') +
-    xlab(xlab) +
-    ylab(ylab) +
-    theme_minimal()
-}
-
-# EXAMPLE:
-# box_plot(ds$eGFR_status, ds$UDBP_cr_ln,
-#          c('normal','mild','moderate'),
-#          'Estimated GFR','log UDBP:Creatinine')
 
 ## Histogram ##
 histo_plot = function(data, variable, bin, xlab='') {
-  ggplot(data, aes_string(x=variable)) +
-    geom_histogram(binwidth=bin,
+  ggplot2::ggplot(data, aes_string(x=variable)) +
+    ggplot2::geom_histogram(binwidth=bin,
                    colour='#0db7c4', fill='#0db7c4') +
-    xlab(xlab) +
-    theme_minimal() +
-    theme(panel.grid.major.x = element_blank(), 
+    ggplot2::xlab(xlab) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(panel.grid.major.x = element_blank(), 
           axis.line.y = element_blank(),
           axis.text.y = element_text(colour = "grey"),
           axis.ticks.y = element_line(colour = "grey"),
