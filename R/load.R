@@ -1,7 +1,7 @@
 #######################################################################################
 ## Load and Clean Data [https://bitbucket.org/promise-cohort/promise]
 #######################################################################################
-install.packages(c("tidyverse", "neprho", "dplyr", "msm"))
+install.packages(c("tidyverse", "neprho"))
 
 library(nephro)
 library(carpenter)

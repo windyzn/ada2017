@@ -8,7 +8,6 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 
 library(dplyr)
-library(ggplot2)
 
 ds <- readRDS(file='../data/ds.Rds')
 ds1 <- ds %>% filter(fVN == "Baseline")
@@ -242,12 +241,10 @@ corrplot::corrplot(cor(dsGEE[sapply(dsGEE, is.numeric)], use = "complete.obs"),
 
 gee <- ds %>% 
   dplyr::mutate(udbpBase = ifelse(fVN == "Baseline", UDBP, NA),
-                ageBase = ifelse(fVN == "Baseline", Age, NA)
-                # bmiBase = ifelse(fVN == "Baseline", BMI, NA),
+                ageBase = ifelse(fVN == "Baseline", Age, NA),
                 # Ethnicity = ifelse(Ethnicity == "European", Ethnicity, "Other"),
-                # fMedsBP = ifelse(is.na(fMedsBP), "No", "Yes"), 
-                # fMedsBP = factor(fMedsBP, ordered = FALSE)
-                # vitdBase = ifelse(fVN == "Baseline", VitaminD, NA)
+                fMedsBP = ifelse(is.na(fMedsBP), "No", "Yes"),
+                fMedsBP = factor(fMedsBP, ordered = FALSE)
                 ) %>% 
   dplyr::filter(!(fVN == "Baseline" & acr_status == "Macroalbuminuria")) %>%
   dplyr::filter(!(fVN == "Baseline" & eGFR_status == "Moderate")) %>%
@@ -264,15 +261,15 @@ gee <- ds %>%
   mason::design("gee") %>% 
   mason::add_settings(family = stats::gaussian(),
                       corstr = "ar1", cluster.id = "SID") %>% 
-  mason::add_variables("yvars", c("ACR")) %>% 
+  mason::add_variables("yvars", c("ACR", "eGFR")) %>% 
   mason::add_variables("xvars", "udbpBase") %>% 
   mason::add_variables("covariates", c("VN")) %>% 
-  # mason::add_variables("covariates", c("VN", "ageBase", "Sex", "Ethnicity",  
-  #                                      "BMI", "DM", "fMedsBP")) %>%
-  mason::construct() %>% 
-  mason::add_variables("yvars", c("eGFR")) %>% 
-  mason::add_variables("xvar", "udbpBase") %>% 
-  mason::add_variables("covariates", c("VN", "ageBase", "DM")) %>% 
+  mason::add_variables("covariates", c("VN", "ageBase", "Sex",
+                                       "BMI", "DM", "fMedsBP")) %>%
+  # mason::construct() %>% 
+  # mason::add_variables("yvars", c("eGFR")) %>% 
+  # mason::add_variables("xvar", "udbpBase") %>% 
+  # mason::add_variables("covariates", c("VN", "ageBase", "DM")) %>% 
   mason::construct() %>% 
   mason::scrub() %>% 
   mason::polish_adjust_pvalue(method = "BH") %>% 
