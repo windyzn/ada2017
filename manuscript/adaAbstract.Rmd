@@ -23,24 +23,24 @@ Subject characteristics across visit numbers
 ```{r subject characteristics}
 table_subChar(ds)
 
-# check n
-
-table(ds$fVN)
-
-table(ds6$fMedsBP)
-
-# check n of multiple variables
-ds %>%
-  dplyr::tbl_df() %>%
-  dplyr::filter(VN == 1) %>% 
-  dplyr::select(SID, Age, Sex, Ethnicity, BMI,  
-         UrineMicroalbumin, UrineCreatinine, MicroalbCreatRatio, eGFR,
-         VitaminD, Creatinine, UDBP,
-         MeanArtPressure, Systolic, Diastolic) %>%
-  tidyr::gather(Measure, Value, -SID) %>%
-  na.omit() %>%
-  dplyr::group_by(Measure) %>%
-  dplyr::summarise(n = n())
+# # check n
+# 
+# table(ds$fVN)
+# 
+# table(ds6$fMedsBP)
+# 
+# # check n of multiple variables
+# ds %>%
+#   dplyr::tbl_df() %>%
+#   dplyr::filter(VN == 1) %>% 
+#   dplyr::select(SID, Age, Sex, Ethnicity, BMI,  
+#          UrineMicroalbumin, UrineCreatinine, MicroalbCreatRatio, eGFR,
+#          VitaminD, Creatinine, UDBP,
+#          MeanArtPressure, Systolic, Diastolic) %>%
+#   tidyr::gather(Measure, Value, -SID) %>%
+#   na.omit() %>%
+#   dplyr::group_by(Measure) %>%
+#   dplyr::summarise(n = n())
 
 ```
 
@@ -183,79 +183,26 @@ rm(anova)
 # Scatterplot of ACR and uVDBP ----------------------------------
 
 ds %>% 
-  filter(fVN == "Baseline") %>% 
-  select(eGFR, udbpCrRatio) %>% 
+  dplyr::filter(fVN == "3Year") %>% 
+  dplyr::filter(DM == 0) %>% 
+  dplyr::select(eGFR, udbpCrRatio) %>% 
   na.omit() %>% 
   scatter_plot("eGFR", "log(udbpCrRatio)",
                "Estimated Glomerular Filtration Rate (ml/min/1.73m^2)",
                "log UDBP:Creatinine") +
-  geom_smooth(method = lm, colour = "grey50")
+  ggplot2::geom_smooth(method = lm, colour = "grey50")
 
 # Spearman Correlation ------------------------------------------
 
 ds %>% 
-  filter(fVN == "Baseline") %>% 
+  filter(fVN == "Baseline", DM == 0) %>% 
   cor.test(formula = ~ eGFR + udbpCrRatio, data = ., method = "spearman")
 ```
 
-Glycemic Status
----------------
-```{r dm boxplot}
-
-# Boxplot of uVDBP concentrations across DM categories --------------
-
+```{r hyperfiltration}
 ds %>% 
-  filter(fVN == "Baseline") %>% 
-  select(dm_status, udbpCrRatio) %>% 
-  na.omit() %>% 
-  box_plot("dm_status", "log(udbpCrRatio)", 
-            "Estimated GFR (ml/min/1.73m^2)",
-            "log uVDBP:Creatinine")
-
-# Boxplot of Glucose0 in uVDBP categories
-ds1 %>% 
-  select(UDBP_status, Glucose0) %>% 
-  na.omit() %>% 
-  box_plot("UDBP_status", "log(Glucose0)",
-           "Urinary VDBP status",
-           "Fasting Glucose")
-
-# Boxplot of Glucose120 in uVDBP categories
-ds1 %>% 
-  select(UDBP_status, Glucose120) %>% 
-  na.omit() %>% 
-  box_plot("UDBP_status", "log(Glucose120)",
-           "Urinary VDBP status",
-           "2h-post OGTT")
-
-# ANOVA---------------------------------------------------------------
-
-anova <- aov(formula = log(udbpCrRatio)~dm_status, data = ds1)
-summary(anova)
-TukeyHSD(anova)
-rm(anova)
-```
-
-
-
-25(OH)
-------
-```{r vitD scatterplot}
-
-# Scatterplot of serum 25(OH)D and uVDBP ----------------------------------
-
-ds %>% 
-  filter(fVN == "Baseline") %>% 
-  scatter_plot("log(udbpCrRatio)", "VitaminD",
-               "log uVDBP:creatinine",
-               "Serum 25(OH)D") +
-  geom_smooth(method = lm, colour = "grey50")
-
-# Spearman correlation ----------------------------------------------------
-
-ds %>% 
-  filter(fVN == "Baseline") %>% 
-  cor.test(formula = ~ udbpCrRatio + VitaminD, data = ., method = "spearman")
+  dplyr::filter(eGFR > 130) %>% 
+  dplyr::select(SID, VN, eGFR, dm_status)
 ```
 
 
@@ -294,8 +241,8 @@ corrplot::corrplot(cor(dsGEE[sapply(dsGEE, is.numeric)], use = "complete.obs"),
 ```{r mason}
 
 gee <- ds %>% 
-  dplyr::mutate(udbpBase = ifelse(fVN == "Baseline", UDBP, NA)
-                # ageBase = ifelse(fVN == "Baseline", Age, NA),
+  dplyr::mutate(udbpBase = ifelse(fVN == "Baseline", UDBP, NA),
+                ageBase = ifelse(fVN == "Baseline", Age, NA)
                 # bmiBase = ifelse(fVN == "Baseline", BMI, NA),
                 # Ethnicity = ifelse(Ethnicity == "European", Ethnicity, "Other"),
                 # fMedsBP = ifelse(is.na(fMedsBP), "No", "Yes"), 
@@ -307,7 +254,7 @@ gee <- ds %>%
   # dplyr::filter(!(fVN == "Baseline" & dm_status == "DM")) %>%
   dplyr::arrange(SID, fVN) %>% 
   dplyr::group_by(SID) %>% 
-  tidyr::fill(udbpBase) %>% 
+  tidyr::fill(udbpBase, ageBase) %>% 
   dplyr::ungroup() %>%
   dplyr::group_by(VN) %>% 
   dplyr::mutate(
@@ -317,11 +264,15 @@ gee <- ds %>%
   mason::design("gee") %>% 
   mason::add_settings(family = stats::gaussian(),
                       corstr = "ar1", cluster.id = "SID") %>% 
-  mason::add_variables("yvars", c("ACR", "eGFR")) %>% 
+  mason::add_variables("yvars", c("ACR")) %>% 
   mason::add_variables("xvars", "udbpBase") %>% 
   mason::add_variables("covariates", c("VN")) %>% 
   # mason::add_variables("covariates", c("VN", "ageBase", "Sex", "Ethnicity",  
   #                                      "BMI", "DM", "fMedsBP")) %>%
+  mason::construct() %>% 
+  mason::add_variables("yvars", c("eGFR")) %>% 
+  mason::add_variables("xvar", "udbpBase") %>% 
+  mason::add_variables("covariates", c("VN", "ageBase", "DM")) %>% 
   mason::construct() %>% 
   mason::scrub() %>% 
   mason::polish_adjust_pvalue(method = "BH") %>% 
