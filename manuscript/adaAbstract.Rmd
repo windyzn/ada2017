@@ -182,8 +182,8 @@ rm(anova)
 # Scatterplot of ACR and uVDBP ----------------------------------
 
 ds %>% 
-  dplyr::filter(fVN == "3Year") %>% 
-  dplyr::filter(DM == 0) %>% 
+  dplyr::filter(!(acr_status == "Macroalbuminuria")) %>% 
+  dplyr::filter(eGFR < 150) %>% 
   dplyr::select(eGFR, udbpCrRatio) %>% 
   na.omit() %>% 
   scatter_plot("eGFR", "log(udbpCrRatio)",
@@ -194,14 +194,18 @@ ds %>%
 # Spearman Correlation ------------------------------------------
 
 ds %>% 
-  filter(fVN == "Baseline", DM == 0) %>% 
+  filter(!(acr_status == "Macroalbuminuria")) %>% 
   cor.test(formula = ~ eGFR + udbpCrRatio, data = ., method = "spearman")
 ```
 
 ```{r hyperfiltration}
 ds %>% 
-  dplyr::filter(eGFR > 130) %>% 
-  dplyr::select(SID, VN, eGFR, dm_status)
+  dplyr::filter(eGFR < 45) %>% 
+  dplyr::select(SID, VN, Age, eGFR, dm_status, acr_status)
+
+ds %>% 
+  scatter_plot("Age", "eGFR",
+               "Age", "eGFR")
 ```
 
 
@@ -239,28 +243,28 @@ corrplot::corrplot(cor(dsGEE[sapply(dsGEE, is.numeric)], use = "complete.obs"),
 
 ```{r mason}
 
-gee <- ds %>% 
-  dplyr::mutate(udbpBase = ifelse(fVN == "Baseline", UDBP, NA),
-                ageBase = ifelse(fVN == "Baseline", Age, NA),
-                # Ethnicity = ifelse(Ethnicity == "European", Ethnicity, "Other"),
-                fMedsBP = ifelse(is.na(fMedsBP), "No", "Yes"),
-                fMedsBP = factor(fMedsBP, ordered = FALSE)
-                ) %>% 
-  dplyr::filter(!(fVN == "Baseline" & acr_status == "Macroalbuminuria")) %>%
-  dplyr::filter(!(fVN == "Baseline" & eGFR_status == "Moderate")) %>%
-  dplyr::filter(eGFR > 90) %>% 
-  dplyr::arrange(SID, fVN) %>% 
-  dplyr::group_by(SID) %>% 
-  tidyr::fill(udbpBase, ageBase) %>% 
-  dplyr::ungroup() %>%
-  dplyr::group_by(VN) %>% 
+gee <- ds %>%
   dplyr::mutate(
-    udbpBase = as.numeric(scale(udbpBase))
+  udbpBase = ifelse(fVN == "Baseline", UDBP, NA),
+  ageBase = ifelse(fVN == "Baseline", Age, NA)
+  # Ethnicity = ifelse(Ethnicity == "European", Ethnicity, "Other"),
   ) %>%
-  dplyr::arrange(SID, VN) %>% 
-  mason_gee(yvars = c("ACR", "eGFR"),
-            xvars = "udbpBase",
-            covars = c("VN", "ageBase", "DM"))
+  dplyr::filter(!(fVN == "Baseline" &
+                    acr_status == "Macroalbuminuria")) %>%
+  dplyr::filter(!(fVN == "Baseline" & eGFR_status == "Moderate")) %>%
+  # dplyr::filter(fMedsBP == "Yes") %>%
+  dplyr::arrange(SID, fVN) %>%
+  dplyr::group_by(SID) %>%
+  tidyr::fill(udbpBase, ageBase) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(VN) %>%
+  dplyr::mutate(udbpBase = as.numeric(scale(udbpBase))) %>%
+  dplyr::arrange(SID, VN) %>%
+  mason_gee(
+  yvars = c("ACR", "eGFR"),
+  xvars = "udbpBase",
+  covars = c("VN", "ageBase")
+  )
 
 # To-Do: categorical outcome variables
 
