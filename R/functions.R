@@ -67,6 +67,24 @@ table_subChar <- function(data) {
     carpenter::build_table()
 }
 
+## -----------------------------------------
+
+table_value <- function(data, by = "") {
+  data %>%
+    mutate(
+      acr_status = factor(acr_status, ordered = FALSE),
+      eGFR_status = factor(eGFR_status, ordered = FALSE),
+      UDBP_status = factor(UDBP_status, ordered = FALSE)
+    ) %>%
+    carpenter::outline_table(by) %>%
+    carpenter::add_rows("logUdbpRatio",
+      carpenter::stat_medianIQR,
+      digits = 2
+    ) %>%
+    carpenter::renaming("rows", rename_table_rows) %>%
+    carpenter::build_table()
+}
+
 # Plots =========================================================================================
 
 ## Scatterplot ##
@@ -95,38 +113,7 @@ scatter_plot = function(data, xvar, yvar, xlab='', ylab='') {
 
 
 ## Boxplot ##
-box_plot <- function(data, xvar, yvar, xlab="", ylab="") {
-  ggplot2::ggplot(data, aes_string(x = xvar, y = yvar)) +
-    ggplot2::geom_boxplot(aes_string(colour = xvar, fill = xvar)) +
-    ggplot2::stat_summary(geom = "crossbar", width = 0.65, fatten = 0, color = "white",
-                 fun.data = function(x){
-                   return(c(y = median(x), ymin = median(x), ymax = median(x)))
-                 }) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(legend.position = "none",
-          panel.grid.major.x = element_blank(), 
-          axis.line.y = element_blank(),
-          axis.text.y = element_text(colour = "grey"),
-          axis.ticks.y = element_line(colour = "grey"),
-          axis.text.x = element_text(colour = "grey 30"), #angle = 45
-          axis.title = element_text(size = 10)) +
-    ggplot2::xlab(xlab) +
-    ggplot2::ylab(ylab)
-}
 
-# scale_x_discrete(labels = paste(levels(ds_base$xvar), 
-#                                 "\n(N=", table(ds_base$xvar), ")", sep = "")) +
-
-
-
-# box_plot = function(data, xvar, yvar, xlab='', ylab='') {
-#   ggplot(data, aes(x=xvar, y=yvar)) +
-#     geom_boxplot() +
-#     # scale_x_discrete(limits=xcat) +
-#     xlab(xlab) +
-#     ylab(ylab) +
-#     theme_bw()
-# }
 
 
 ## Histogram ##

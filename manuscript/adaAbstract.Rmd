@@ -9,9 +9,21 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 
 library(dplyr)
 
-ds <- readRDS(file='../data/ds.Rds')
-ds1 <- ds %>% filter(fVN == "Baseline")
+ds <- readRDS(file='../data/ds.Rds') %>% 
+  dplyr::mutate(logUdbpRatio = log(udbpCrRatio)) %>% 
+  dplyr::select(SID, VN, fVN, Age, ACR, eGFR, UDBP,
+                acr_status, eGFR_status, UDBP_status, 
+                udbpCrRatio, logUdbpRatio) %>% 
+  dplyr::group_by(SID) %>% 
+  dplyr::filter(n() == 3) %>% 
+  dplyr::ungroup()
+
+ds1 <- ds %>% 
+  dplyr::filter(fVN == "Baseline")
+
 source('../R/functions.r')
+source("../R/gee.R")
+source("../R/graphs.R")
 
 ```
 
@@ -20,26 +32,22 @@ Subject Characterization
 
 Subject characteristics across visit numbers
 ```{r subject characteristics}
-table_subChar(ds)
+table_subChar(ds1)
 
 # # check n
 # 
-# table(ds$fVN)
-# 
-# table(ds6$fMedsBP)
+table(ds1$acr_status)
+
 # 
 # # check n of multiple variables
-# ds %>%
-#   dplyr::tbl_df() %>%
-#   dplyr::filter(VN == 1) %>% 
-#   dplyr::select(SID, Age, Sex, Ethnicity, BMI,  
-#          UrineMicroalbumin, UrineCreatinine, MicroalbCreatRatio, eGFR,
-#          VitaminD, Creatinine, UDBP,
-#          MeanArtPressure, Systolic, Diastolic) %>%
-#   tidyr::gather(Measure, Value, -SID) %>%
-#   na.omit() %>%
-#   dplyr::group_by(Measure) %>%
-#   dplyr::summarise(n = n())
+ds %>%
+  dplyr::tbl_df() %>%
+  dplyr::filter(VN == 3) %>%
+  dplyr::select(VN, fVN, SID, Age, ACR, eGFR, UDBP) %>%
+  tidyr::gather(Measure, Value, -SID) %>%
+  na.omit() %>%
+  dplyr::group_by(Measure) %>%
+  dplyr::summarise(n = n())
 
 ```
 
@@ -118,6 +126,9 @@ ds1 %>%
            "Urinary VDBP status",
            "log urine albumin-to-creatinine ratio (mg/mmol)")
 
+# Values
+table_value(ds1, by = "acr_status")
+
 # ANOVA
 
 anova <- aov(formula = log(udbpCrRatio)~acr_status, data = ds1)
@@ -161,13 +172,8 @@ ds %>%
             "Estimated GFR (ml/min/1.73m^2)",
             "log uVDBP:Creatinine")
 
-# Boxplot of eGFR in uVDBP categories
-ds1 %>% 
-  select(UDBP_status, eGFR) %>% 
-  na.omit() %>% 
-  box_plot("UDBP_status", "eGFR",
-           "Urinary VDBP status",
-           "Estimated glomerular filtration rate (ml/min/1.73m^2)")
+# Values
+table_value(ds1, by = "eGFR_status")
 
 # ANOVA
 
@@ -179,10 +185,10 @@ rm(anova)
 
 ```{r eGFR scatterplot}
 
-# Scatterplot of ACR and uVDBP ----------------------------------
+# Scatterplot of eGFR and uVDBP ----------------------------------
 
 ds %>% 
-  dplyr::filter(!(acr_status == "Macroalbuminuria")) %>% 
+  dplyr::filter(!(eGFR_status == "Moderate")) %>% 
   dplyr::filter(eGFR < 150) %>% 
   dplyr::select(eGFR, udbpCrRatio) %>% 
   na.omit() %>% 
@@ -243,7 +249,7 @@ corrplot::corrplot(cor(dsGEE[sapply(dsGEE, is.numeric)], use = "complete.obs"),
 
 ```{r mason}
 
-gee <- ds %>%
+gee <- readRDS(file = "../data/ds.Rds") %>%
   dplyr::mutate(
   udbpBase = ifelse(fVN == "Baseline", UDBP, NA),
   ageBase = ifelse(fVN == "Baseline", Age, NA)
@@ -252,18 +258,18 @@ gee <- ds %>%
   dplyr::filter(!(fVN == "Baseline" &
                     acr_status == "Macroalbuminuria")) %>%
   dplyr::filter(!(fVN == "Baseline" & eGFR_status == "Moderate")) %>%
-  # dplyr::filter(fMedsBP == "Yes") %>%
   dplyr::arrange(SID, fVN) %>%
   dplyr::group_by(SID) %>%
   tidyr::fill(udbpBase, ageBase) %>%
-  dplyr::ungroup() %>%
+  dplyr::ungroup(udbpBase) %>%
   dplyr::group_by(VN) %>%
-  dplyr::mutate(udbpBase = as.numeric(scale(udbpBase))) %>%
+  # dplyr::mutate(udbpBase = as.numeric(scale(udbpBase))) %>%
+  dplyr::mutate(UDBP = as.numeric(scale(UDBP))) %>% 
   dplyr::arrange(SID, VN) %>%
   mason_gee(
   yvars = c("ACR", "eGFR"),
-  xvars = "udbpBase",
-  covars = c("VN", "ageBase")
+  xvars = "UDBP",
+  covars = c("VN", "ageBase", "DM")
   )
 
 # To-Do: categorical outcome variables
