@@ -292,19 +292,3 @@ gee %>%
   ggplot2::theme(legend.margin = grid::unit(0, 'cm'))
 
 ```
-
-
-Part 3 - Disease Progression (probably no time)
-===============================================
-
-Find n
-```{r}
-# ds %>% 
-#   dplyr::select(SID, VN, eGFR_status, eGFR) %>% 
-#   dplyr::group_by(SID, VN) %>% 
-#   na.omit() %>% 
-#   statetable.msm(eGFR_status, SID, data= .)
-
-```
-
-
