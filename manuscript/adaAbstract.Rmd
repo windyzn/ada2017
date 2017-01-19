@@ -34,8 +34,7 @@ Subject characteristics across visit numbers
 ```{r subject characteristics}
 table_subChar(ds1)
 
-# # check n
-# 
+# check n
 table(ds1$acr_status)
 
 # 
@@ -261,10 +260,8 @@ gee <- readRDS(file = "../data/ds.Rds") %>%
   dplyr::arrange(SID, fVN) %>%
   dplyr::group_by(SID) %>%
   tidyr::fill(udbpBase, ageBase) %>%
-  dplyr::ungroup(udbpBase) %>%
-  dplyr::group_by(VN) %>%
-  # dplyr::mutate(udbpBase = as.numeric(scale(udbpBase))) %>%
-  dplyr::mutate(UDBP = as.numeric(scale(UDBP))) %>% 
+  dplyr::ungroup() %>%
+  dplyr::mutate(UDBP = UDBP/1000) %>%
   dplyr::arrange(SID, VN) %>%
   mason_gee(
   yvars = c("ACR", "eGFR"),
@@ -275,6 +272,31 @@ gee <- readRDS(file = "../data/ds.Rds") %>%
 # To-Do: categorical outcome variables
 
 ```
+
+```{r}
+gee3 <- readRDS(file = "../data/ds.Rds") %>%
+  dplyr::mutate(
+  udbpBase = ifelse(fVN == "Baseline", UDBP, NA),
+  ageBase = ifelse(fVN == "Baseline", Age, NA),
+  VitaminD3 = ifelse(fVN == "6Year", NA, VitaminD)
+  # Ethnicity = ifelse(Ethnicity == "European", Ethnicity, "Other"),
+  ) %>%
+  dplyr::arrange(SID, fVN) %>%
+  dplyr::group_by(SID) %>%
+  tidyr::fill(udbpBase, ageBase) %>%
+  dplyr::ungroup() %>%
+  # dplyr::group_by(VN) %>%
+  # dplyr::mutate(udbpBase = as.numeric(scale(udbpBase))) %>%
+  dplyr::mutate(UDBP = UDBP/1000) %>%
+  # dplyr::ungroup() %>% 
+  dplyr::arrange(SID, VN) %>%
+  mason_gee(
+  yvars = c("VitaminD3"),
+  xvars = "UDBP",
+  covars = c("VN", "ageBase", "DM")
+  )
+```
+
 
 Graph
 ```{r gee plot}
