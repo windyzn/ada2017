@@ -11,6 +11,8 @@ box_plot <- function(data, xvar, yvar, xlab="", ylab="", facet = FALSE) {
                             return(c(y = median(x), ymin = median(x), ymax = median(x)))
                           }) +
     ggplot2::theme_minimal() +
+    ggplot2::scale_fill_brewer(palette = "Dark2") +
+    ggplot2::scale_color_brewer(palette = "Dark2") +
     ggplot2::theme(legend.position = "none",
                    panel.grid.major.x = ggplot2::element_blank(), 
                    axis.line.y = ggplot2::element_blank(),

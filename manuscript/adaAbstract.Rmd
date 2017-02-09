@@ -13,10 +13,11 @@ ds <- readRDS(file='../data/ds.Rds') %>%
   dplyr::mutate(logUdbpRatio = log(udbpCrRatio)) %>% 
   dplyr::select(SID, VN, fVN, Age, ACR, eGFR, UDBP,
                 acr_status, eGFR_status, UDBP_status, 
-                udbpCrRatio, logUdbpRatio) %>% 
-  dplyr::group_by(SID) %>% 
-  dplyr::filter(n() == 3) %>% 
-  dplyr::ungroup()
+                udbpCrRatio, logUdbpRatio, 
+                DM, dm_status)
+  # dplyr::group_by(SID) %>% 
+  # dplyr::filter(n() == 3) %>% 
+  # dplyr::ungroup()
 
 ds1 <- ds %>% 
   dplyr::filter(fVN == "Baseline")
@@ -243,15 +244,17 @@ round(cor(dsGEE[sapply(dsGEE, is.numeric)], use = "complete.obs"), 2)
 
 corrplot::corrplot(cor(dsGEE[sapply(dsGEE, is.numeric)], use = "complete.obs"),
                    method = "color")
+
 ```
 
 
 ```{r mason}
 
-gee <- readRDS(file = "../data/ds.Rds") %>%
+gee <- ds %>%
   dplyr::mutate(
   udbpBase = ifelse(fVN == "Baseline", UDBP, NA),
-  ageBase = ifelse(fVN == "Baseline", Age, NA)
+  ageBase = ifelse(fVN == "Baseline", Age, NA),
+  fDM = relevel(as.factor(DM), "1")
   # Ethnicity = ifelse(Ethnicity == "European", Ethnicity, "Other"),
   ) %>%
   dplyr::filter(!(fVN == "Baseline" &
@@ -266,11 +269,8 @@ gee <- readRDS(file = "../data/ds.Rds") %>%
   mason_gee(
   yvars = c("ACR", "eGFR"),
   xvars = "UDBP",
-  covars = c("VN", "ageBase", "DM")
+  covars = c("VN", "ageBase", "fDM")
   )
-
-# To-Do: categorical outcome variables
-
 ```
 
 ```{r}
